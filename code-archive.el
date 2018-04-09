@@ -61,8 +61,9 @@
 (defun code-archive-init ()
   "Initialize the code archive."
   (unless (or code-archive-initialized
-              (file-exists-p code-archive-dir))
-    (mkdir code-archive-dir)
+              (file-exists-p (concat (file-name-as-directory code-archive-dir) ".git")))
+    (unless (file-exists-p code-archive-dir)
+      (mkdir code-archive-dir))
     (with-temp-buffer
       (write-file code-archive--link-file)
       (insert "0")
