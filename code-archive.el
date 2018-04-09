@@ -39,6 +39,9 @@
                                (mhtml-mode . "html")
                                ))
 
+(defvar code-archive-git-executable "git"
+  "The Git executable used by code-archive.")
+
 (defvar code-archive--save-stack nil)
 
 (defvar code-archive--link-file
@@ -58,6 +61,17 @@
 (defstruct code-archive--entry codeblock src-type string)
 (defstruct code-archive--codeblock id file archived-file line archived-git-commit archived-md5)
 
+(defun code-archive--run-git (&rest command-args)
+  (let (s)
+    (with-temp-buffer
+      (cd code-archive-dir)
+      (dolist (args command-args)
+        (erase-buffer)
+        (apply 'call-process code-archive-git-executable nil t nil args)
+        (setq s (buffer-string))
+        (when (> (length s) 0)
+          (message s))))))
+
 (defun code-archive-init ()
   "Initialize the code archive."
   (unless (or code-archive-initialized
@@ -67,10 +81,10 @@
     (with-temp-buffer
       (write-file code-archive--link-file)
       (insert "0")
-      (write-file code-archive--next-id-file))
-    (shell-command
-     (format "cd %s; git init; git add *; git commit -m \"initial\""
-             code-archive-dir)))
+      (write-file code-archive--id-file))
+    (code-archive--run-git '("init")
+                           '("add" "*")
+                           '("commit" "-m" "initial")))
   (setq code-archive-initialized t))
 
 ;;;###autoload
@@ -179,11 +193,8 @@ Return the archive data in a code-archive--codeblock struct."
 
     (when commit
       (setq git-output
-            (shell-command-to-string
-             (format "cd %s && git add %s && git commit -m \"%s\""
-                     code-archive-dir filename
-                     (format "%s: %s" commit path))))
-      (message  "git: %s" git-output))
+            (code-archive--run-git (list "add" filename)
+                                   (list "commit" "-m" (format "%s: %s" commit path)))))
 
     (setq commit-hash (code-archive--strip-end
                        (shell-command-to-string
@@ -215,12 +226,6 @@ Return the archive data in a code-archive--codeblock struct."
       (setq split (butlast split)))
     (mapconcat 'identity split "")))
 
-(defun code-archive--git-commit (msg)
-  (message "git: %s" (shell-command-to-string
-                      (format "cd %s && git add * && git commit -m \"%s\""
-                              code-archive-dir
-                              msg))))
-
 (defun code-archive--add-codeblock (codeblock)
   "Add a new CODEBLOCK link to the archive."
   (code-archive--load-codeblocks)
@@ -234,7 +239,9 @@ Return the archive data in a code-archive--codeblock struct."
   (puthash (code-archive--codeblock-id codeblock)
            codeblock
            code-archive--codeblocks)
-  (code-archive--git-commit "added: code block link"))
+  (code-archive--run-git '("add" "*")
+                         '("commit" "-m" "added: code block link")))
+
 
 (defun code-archive--get-block-info (id)
   "Return the source information for codeblock with given ID."
