@@ -160,6 +160,11 @@ The point must be on the first line."
       (insert (number-to-string (1+ n))))
     n))
 
+(defun code-archive--file-md5 (filename)
+  (with-temp-buffer
+    (insert-file-contents-literally filename)
+    (md5 (buffer-string))))
+
 (defun code-archive--save-buffer-file ()
   "Archive the current buffer in `code-archive-dir'.
 Return the archive data in a code-archive--codeblock struct."
@@ -177,11 +182,7 @@ Return the archive data in a code-archive--codeblock struct."
 
     (if (file-exists-p archive-path)
         ;; check if file has changed
-        (progn (setq curr-md5
-                     (code-archive--strip-end (shell-command-to-string
-                                               (format "md5sum %s" archive-path))
-                                              "\n"))
-               (setq curr-md5 (car (split-string curr-md5)))
+        (progn (setq curr-md5 (code-archive--file-md5 archive-path))
                (unless (string= checksum curr-md5)
                  (copy-file path archive-path :overwrite)
                  (setq commit "changed")))
