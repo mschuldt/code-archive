@@ -159,7 +159,7 @@ Usage in capture template: (code-archive-org-src-tag \"%f\")"
     (with-current-buffer (find-buffer-visiting filename)
       (setq src-type (code-archive--source-type)))
     (if src-type
-        (format ":%s:" src-type)
+        (format ":%s:" (replace-regexp-in-string"-" "_" src-type))
       "")))
 
 ;;;###autoload
