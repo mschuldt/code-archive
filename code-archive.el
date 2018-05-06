@@ -87,22 +87,25 @@
                            '("commit" "-m" "initial")))
   (setq code-archive-initialized t))
 
+(defun code-archive--source-type ()
+  "Returns the source type of the current buffer."
+  (when major-mode
+    (or (cdr (assoc major-mode code-archive-src-map))
+        (car (split-string (symbol-name major-mode) "-mode")))))
+
 ;;;###autoload
 (defun code-archive-save-code ()
   "Archive the current buffer and save the region to the code archive kill stack."
   (interactive)
   (code-archive-init)
-  (let* ((src-type (and major-mode (cdr (assoc major-mode code-archive-src-map))))
-         (file (buffer-file-name))
+  (let* ((file (buffer-file-name))
          (line (and file (code-archive--current-line (and (region-active-p) (region-beginning)))))
          (region-string (and (region-active-p) (buffer-substring (region-beginning) (region-end))))
          (codeblock (code-archive--save-buffer-file)))
-    (unless src-type
-      (setq src-type (and major-mode (car (split-string (symbol-name major-mode) "-mode")))))
     (setf (code-archive--codeblock-file codeblock) file)
     (setf (code-archive--codeblock-line codeblock) line)
     (push (make-code-archive--entry :codeblock codeblock
-                                    :src-type src-type
+                                    :src-type (code-archive--source-type)
                                     :string region-string)
           code-archive--save-stack)))
 
