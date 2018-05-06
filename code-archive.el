@@ -109,28 +109,46 @@
                                     :string region-string)
           code-archive--save-stack)))
 
+(defun code-archive--format-org-block ()
+  "Format an `org-mode' styled code block sourced from the code archive kill stack.
+This consumes an entry from code-archive--save-stack."
+  (let* ((entry (pop code-archive--save-stack))
+         (codeblock (code-archive--entry-codeblock entry))
+         (src-type (code-archive--entry-src-type entry))
+         (string (code-archive--entry-string entry))
+         (id (code-archive--next-id)))
+    (setf (code-archive--codeblock-id codeblock) id)
+    (code-archive--add-codeblock codeblock)
+    (format  "\n#+BEGIN_SRC %s :var _id=%s
+%s\n#+END_SRC
+" src-type id string)))
+
 ;;;###autoload
-(defun code-archive-yank-code ()
-  "Insert an `org-mode' styled code block sourced from the code archive kill stack."
+(defun code-archive-insert-org-block ()
+  "Insert an `org-mode' styled code block sourced from the code archive kill stack.
+This consumes an entry from code-archive--save-stack."
   (interactive)
   (if code-archive--save-stack
-      (let* ((entry (pop code-archive--save-stack))
-             (codeblock (code-archive--entry-codeblock entry))
-             (src-type (code-archive--entry-src-type entry))
-             (string (code-archive--entry-string entry))
-             (id (code-archive--next-id)))
-        (setf (code-archive--codeblock-id codeblock) id)
-        (code-archive--add-codeblock codeblock)
-        (save-excursion (insert (format  "\n#+BEGIN_SRC %s :var _id=%s
-%s\n#+END_SRC
-" src-type id string))))
-    ;;else:
+      (save-excursion
+        (insert (code-archive--format-org-block)))
     (message "org code ring is empty")))
+
+;;;###autoload
+(defun code-archive-org-src-tag (filename)
+  "For use in an org-capture template, inserts an org code block.
+FILENAME is the name of the file visited by buffer when org-capture was called.
+Usage in capture template: (code-archive-org-src-tag \"%f\")"
+  (let (src-type)
+    (with-current-buffer (find-buffer-visiting filename)
+      (setq src-type (code-archive--source-type)))
+    (if src-type
+        (format ":%s:" src-type)
+      "")))
 
 ;;;###autoload
 (defun code-archive-goto-src ()
   "Open the origin source file of the codeblock at point.
-The point must be on the first line."
+The point must be on the first line." ;;TODO: jump from anywhere in the source block
   (interactive)
   (let (bound id info)
     (save-excursion
