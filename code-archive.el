@@ -111,7 +111,7 @@
 
 ;;;###autoload
 (defun code-archive-yank-code ()
-  "Insert an ‘org-mode’ styled code block sourced from the code archive kill stack."
+  "Insert an `org-mode' styled code block sourced from the code archive kill stack."
   (interactive)
   (if code-archive--save-stack
       (let* ((entry (pop code-archive--save-stack))
