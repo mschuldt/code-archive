@@ -205,7 +205,7 @@ Return the archive data in a code-archive--codeblock struct."
          (filename (format "%s_%s" (md5 (or path (buffer-name))) name))
          (archive-path (concat (file-name-as-directory code-archive-dir)
                                filename))
-         commit curr-md5 git-output commit-hash)
+         commit curr-md5 commit-hash)
 
     (if (file-exists-p archive-path)
         ;; check if file has changed
@@ -223,9 +223,8 @@ Return the archive data in a code-archive--codeblock struct."
              (setq commit "added")))
 
     (when commit
-      (setq git-output
-            (code-archive--run-git (list "add" filename)
-                                   (list "commit" "-m" (format "%s: %s" commit path)))))
+      (code-archive--run-git (list "add" filename)
+                                   (list "commit" "-m" (format "%s: %s" commit path))))
 
     (setq commit-hash (code-archive--strip-end
                        (shell-command-to-string
