@@ -255,7 +255,7 @@ Return the archive data in a code-archive--codeblock struct."
           (codeblocks (make-hash-table))
           blocks)
       (with-temp-buffer
-        (condition-case nil
+        (condition-case err
             (progn
               (insert-file-contents-literally code-archive--link-file)
               (goto-char (point-max))
@@ -264,8 +264,7 @@ Return the archive data in a code-archive--codeblock struct."
               (insert "(")
               (goto-char 1)
               (setq blocks (read (current-buffer))))
-          (error
-           (message "Error reading kb codeblock file '%s'" code-archive--link-file))))
+          (error (message "Error reading kb codeblock file '%s': %s" code-archive--link-file err))))
       (dolist (x blocks)
         (if (gethash (code-archive--codeblock-id x) codeblocks)
             (error  "Duplicate codeblock link for id: %s" (code-archive--codeblock-id x))
