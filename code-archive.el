@@ -134,6 +134,15 @@ This consumes an entry from code-archive--save-stack."
     (message "org code ring is empty")))
 
 ;;;###autoload
+(defun code-archive-do-org-capture (filename)
+  "For use in an org-capture template, inserts an org code block.
+FILENAME is the name of the file visited by buffer when org-capture was called.
+Usage in capture template: (code-archive-do-org-capture \"%f\")"
+  (with-current-buffer (find-buffer-visiting filename)
+    (code-archive-save-code))
+  (code-archive--format-org-block))
+
+;;;###autoload
 (defun code-archive-org-src-tag (filename)
   "For use in an org-capture template, inserts an org code block.
 FILENAME is the name of the file visited by buffer when org-capture was called.
