@@ -58,10 +58,13 @@
 (defvar code-archive--codeblocks-loaded nil
   "Non-nil when codeblocks are loaded.")
 
-(defstruct code-archive--entry codeblock src-type string)
-(defstruct code-archive--codeblock id file archived-file line archived-git-commit archived-md5)
+(defstruct code-archive--entry
+  codeblock src-type string)
+(defstruct code-archive--codeblock
+  id file archived-file line archived-git-commit archived-md5)
 
 (defun code-archive--run-git (&rest command-args)
+  "Execute Git with COMMAND-ARGS, display any output."
   (let (s)
     (with-temp-buffer
       (cd code-archive-dir)
@@ -75,7 +78,8 @@
 (defun code-archive-init ()
   "Initialize the code archive."
   (unless (or code-archive-initialized
-              (file-exists-p (concat (file-name-as-directory code-archive-dir) ".git")))
+              (file-exists-p (concat (file-name-as-directory code-archive-dir)
+                                     ".git")))
     (unless (file-exists-p code-archive-dir)
       (mkdir code-archive-dir))
     (with-temp-buffer
@@ -88,19 +92,23 @@
   (setq code-archive-initialized t))
 
 (defun code-archive--source-type ()
-  "Returns the source type of the current buffer."
+  "Return the source type of the current buffer."
   (when major-mode
     (or (cdr (assoc major-mode code-archive-src-map))
         (car (split-string (symbol-name major-mode) "-mode")))))
 
 ;;;###autoload
 (defun code-archive-save-code ()
-  "Archive the current buffer and save the region to the code archive kill stack."
+  "Archive the current buffer and save the region to the code archive stack."
   (interactive)
   (code-archive-init)
   (let* ((file (buffer-file-name))
-         (line (and file (code-archive--current-line (and (region-active-p) (region-beginning)))))
-         (region-string (and (region-active-p) (buffer-substring (region-beginning) (region-end))))
+         (line (and file
+                    (code-archive--current-line (and (region-active-p)
+                                                     (region-beginning)))))
+         (region-string (and (region-active-p)
+                             (buffer-substring (region-beginning)
+                                               (region-end))))
          (codeblock (code-archive--save-buffer-file)))
     (setf (code-archive--codeblock-file codeblock) file)
     (setf (code-archive--codeblock-line codeblock) line)
@@ -110,8 +118,8 @@
           code-archive--save-stack)))
 
 (defun code-archive--format-org-block ()
-  "Format an `org-mode' styled code block sourced from the code archive kill stack.
-This consumes an entry from code-archive--save-stack."
+  "Format an `org-mode' styled code block sourced from the code archive stack.
+This consumes an entry from ‘code-archive--save-stack’."
   (let* ((entry (pop code-archive--save-stack))
          (codeblock (code-archive--entry-codeblock entry))
          (src-type (code-archive--entry-src-type entry))
@@ -125,8 +133,8 @@ This consumes an entry from code-archive--save-stack."
 
 ;;;###autoload
 (defun code-archive-insert-org-block ()
-  "Insert an `org-mode' styled code block sourced from the code archive kill stack.
-This consumes an entry from code-archive--save-stack."
+  "Insert an `org-mode' styled code block sourced from the code archive stack.
+This consumes an entry from ‘code-archive--save-stack’."
   (interactive)
   (if code-archive--save-stack
       (save-excursion
@@ -135,8 +143,8 @@ This consumes an entry from code-archive--save-stack."
 
 ;;;###autoload
 (defun code-archive-do-org-capture (filename)
-  "For use in an org-capture template, inserts an org code block.
-FILENAME is the name of the file visited by buffer when org-capture was called.
+  "For use in an org capture template, insert an org code block.
+FILENAME is the name of the file visited by buffer when org capture was called.
 Usage in capture template: (code-archive-do-org-capture \"%f\")"
   (with-current-buffer (find-buffer-visiting filename)
     (code-archive-save-code))
@@ -144,8 +152,8 @@ Usage in capture template: (code-archive-do-org-capture \"%f\")"
 
 ;;;###autoload
 (defun code-archive-org-src-tag (filename)
-  "For use in an org-capture template, inserts an org code block.
-FILENAME is the name of the file visited by buffer when org-capture was called.
+  "For use in an org capture template, insert an org code block.
+FILENAME is the name of the file visited by buffer when org capture was called.
 Usage in capture template: (code-archive-org-src-tag \"%f\")"
   (let (src-type)
     (with-current-buffer (find-buffer-visiting filename)
@@ -188,6 +196,7 @@ The point must be on the first line." ;;TODO: jump from anywhere in the source b
     n))
 
 (defun code-archive--file-md5 (filename)
+  "Calculate the md5 digest of the file FILENAME."
   (with-temp-buffer
     (insert-file-contents-literally filename)
     (md5 (buffer-string))))
@@ -224,7 +233,8 @@ Return the archive data in a code-archive--codeblock struct."
 
     (when commit
       (code-archive--run-git (list "add" filename)
-                                   (list "commit" "-m" (format "%s: %s" commit path))))
+                             (list "commit" "-m" (format "%s: %s"
+                                                         commit path))))
 
     (setq commit-hash (code-archive--strip-end
                        (shell-command-to-string
@@ -257,6 +267,7 @@ Return the archive data in a code-archive--codeblock struct."
     (mapconcat 'identity split "")))
 
 (defun code-archive--record-to-vector (record)
+  "Convert RECORD type to a vector."
   (let* ((len (1- (length record)))
          (v (make-vector len nil)))
     (dotimes (i len)
@@ -264,13 +275,15 @@ Return the archive data in a code-archive--codeblock struct."
     v))
 
 (defun code-archive--codeblock-to-vector (codeblock)
+  "Convert CODEBLOCK type to a vector."
   (cond ((vectorp codeblock)
          codeblock)
         ((recordp codeblock)
          (code-archive--record-to-vector codeblock))
-        (t (error "unhanded type: %s" (type-of codeblock)))))
+        (t (error "Unhanded type: %s" (type-of codeblock)))))
 
 (defun code-archive--array-to-codeblock (a)
+  "Create a codeblock struct from the array A."
   (make-code-archive--codeblock :id (aref a 0)
                                 :file (aref a 1)
                                 :archived-file (aref a 2)
@@ -315,11 +328,14 @@ Return the archive data in a code-archive--codeblock struct."
               (goto-char 1)
               (insert "(")
               (goto-char 1)
-              (setq blocks (mapcar 'code-archive--array-to-codeblock (read (current-buffer)))))
-          (error (message "Error reading kb codeblock file '%s': %s" code-archive--link-file err))))
+              (setq blocks (mapcar 'code-archive--array-to-codeblock
+                                   (read (current-buffer)))))
+          (error (message "Error reading kb codeblock file '%s': %s"
+                          code-archive--link-file err))))
       (dolist (x blocks)
         (if (gethash (code-archive--codeblock-id x) codeblocks)
-            (error  "Duplicate codeblock link for id: %s" (code-archive--codeblock-id x))
+            (error  "Duplicate codeblock link for id: %s"
+                    (code-archive--codeblock-id x))
           (puthash (code-archive--codeblock-id x) x codeblocks)
           (setq c (1+ c))))
       (setq code-archive--codeblocks codeblocks)
