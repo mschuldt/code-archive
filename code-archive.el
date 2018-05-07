@@ -28,7 +28,7 @@
 
 (require 'cl)
 
-(defvar code-archive-dir "~/code-archive-TEST"
+(defvar code-archive-dir "~/code-archive"
   "Directory in which to archive source files.")
 
 (defvar code-archive-src-map '((lisp-interaction-mode . "emacs-lisp")
