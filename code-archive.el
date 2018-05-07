@@ -164,7 +164,7 @@ Usage in capture template: (code-archive-org-src-tag \"%f\")"
 
 ;;;###autoload
 (defun code-archive-goto-src ()
-  "Open the origin source file of the codeblock at point.
+  "Open the original source file of the codeblock at point.
 The point must be on the first line." ;;TODO: jump from anywhere in the source block
   (interactive)
   (let (bound id info)
