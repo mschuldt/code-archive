@@ -196,21 +196,21 @@ The point must be on the first line." ;;TODO: jump from anywhere in the source b
             (goto-char 1)
             (forward-line line)
             (when changed
-              (read-only-mode 1))
-            (if file-exists
-                (message "Visiting archived version. Press 'o' to visit original changed file")
-              (message "Visiting archived version. Original file deleted."))
+              (read-only-mode 1)
+              (if file-exists
+                  (message "Visiting archived version. Press 'o' to visit original changed file")
+                (message "Visiting archived version. Original file deleted."))
 
-            (local-set-key (kbd "o")
-                           (lambda ()
-                             (interactive)
-                             (if file-exists
-                                 (progn
-                                   (find-file-other-window source-file)
-                                   (goto-char 1)
-                                   (forward-line line))
-                               (message "Original file does not exist"))
-                             )))
+              (local-set-key (kbd "o")
+                             (lambda ()
+                               (interactive)
+                               (if file-exists
+                                   (progn
+                                     (find-file-other-window source-file)
+                                     (goto-char 1)
+                                     (forward-line line))
+                                 (message "Original file does not exist"))
+                               ))))
         (message "Error: no link info for codeblock id: %s" id)))))
 
 (defun code-archive--next-id ()
