@@ -180,9 +180,23 @@ The point must be on the first line." ;;TODO: jump from anywhere in the source b
     (when id
       (setq info (code-archive--get-block-info id))
       (if info
-          (progn (find-file-other-window (code-archive--codeblock-file info))
-                 (goto-char 1)
-                 (forward-line (1- (code-archive--codeblock-line info))))
+          (let* ((source-file (code-archive--codeblock-file info))
+                 (file source-file)
+                 (archive-md5 (code-archive--codeblock-archived-md5 info))
+                 (line (1- (code-archive--codeblock-line info)))
+                 (file-exists (file-exists-p file))
+                 changed)
+            (unless (and file-exists
+                         (string= (code-archive--file-md5 file)
+                                  archive-md5))
+              (setq file (concat (file-name-as-directory code-archive-dir)
+                                 (code-archive--codeblock-archived-file info))
+                    changed t))
+            (find-file-other-window file)
+            (goto-char 1)
+            (forward-line line)
+            (when changed
+              (read-only-mode 1)))
         (message "Error: no link info for codeblock id: %s" id)))))
 
 (defun code-archive--next-id ()
