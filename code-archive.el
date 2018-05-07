@@ -210,6 +210,11 @@ The point must be on the first line." ;;TODO: jump from anywhere in the source b
                                      (goto-char 1)
                                      (forward-line line))
                                  (message "Original file does not exist"))
+                               ))
+              (local-set-key (kbd "q")
+                             (lambda ()
+                               (interactive)
+                               (kill-buffer)
                                ))))
         (message "Error: no link info for codeblock id: %s" id)))))
 
