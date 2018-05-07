@@ -44,12 +44,6 @@
 
 (defvar code-archive--save-stack nil)
 
-(defvar code-archive--link-file
-  (concat (file-name-as-directory code-archive-dir) "_code-links.el"))
-
-(defvar code-archive--id-file
-  (concat (file-name-as-directory code-archive-dir) "_next-id.el"))
-
 (defvar code-archive--codeblocks (make-hash-table))
 
 (defvar code-archive-initialized nil
@@ -60,8 +54,17 @@
 
 (defstruct code-archive--entry
   codeblock src-type string)
+
 (defstruct code-archive--codeblock
   id file archived-file line archived-git-commit archived-md5)
+
+(defun code-archive--link-file ()
+  "Return the archive link-file."
+  (concat (file-name-as-directory code-archive-dir) "_code-links.el"))
+
+(defun code-archive--id-file ()
+  "Return the archive id-file."
+  (concat (file-name-as-directory code-archive-dir) "_next-id.el"))
 
 (defun code-archive--run-git (&rest command-args)
   "Execute Git with COMMAND-ARGS, display any output."
@@ -83,9 +86,9 @@
     (unless (file-exists-p code-archive-dir)
       (mkdir code-archive-dir))
     (with-temp-buffer
-      (write-file code-archive--link-file)
+      (write-file (code-archive--link-file))
       (insert "0")
-      (write-file code-archive--id-file))
+      (write-file (code-archive--id-file)))
     (code-archive--run-git '("init")
                            '("add" "*")
                            '("commit" "-m" "initial")))
@@ -220,11 +223,11 @@ The point must be on the first line." ;;TODO: jump from anywhere in the source b
 
 (defun code-archive--next-id ()
   "Return the next source block id."
-  (assert (not (zerop (or (nth 7 (file-attributes code-archive--id-file)) 0))))
+  (assert (not (zerop (or (nth 7 (file-attributes (code-archive--id-file))) 0))))
   (let ((n (with-temp-buffer
-             (insert-file-contents code-archive--id-file)
+             (insert-file-contents (code-archive--id-file))
              (read (current-buffer)))))
-    (with-temp-file code-archive--id-file
+    (with-temp-file (code-archive--id-file)
       (insert (number-to-string (1+ n))))
     n))
 
@@ -333,7 +336,7 @@ Return the archive data in a code-archive--codeblock struct."
       (print (code-archive--codeblock-to-vector codeblock) (current-buffer)))
     (append-to-file (point-min)
                     (point-max)
-                    code-archive--link-file))
+                    (code-archive--link-file)))
   (puthash (code-archive--codeblock-id codeblock)
            codeblock
            code-archive--codeblocks)
@@ -355,7 +358,7 @@ Return the archive data in a code-archive--codeblock struct."
       (with-temp-buffer
         (condition-case err
             (progn
-              (insert-file-contents-literally code-archive--link-file)
+              (insert-file-contents-literally (code-archive--link-file))
               (goto-char (point-max))
               (insert ")")
               (goto-char 1)
@@ -364,7 +367,7 @@ Return the archive data in a code-archive--codeblock struct."
               (setq blocks (mapcar 'code-archive--array-to-codeblock
                                    (read (current-buffer)))))
           (error (message "Error reading kb codeblock file '%s': %s"
-                          code-archive--link-file err))))
+                          (code-archive--link-file) err))))
       (dolist (x blocks)
         (if (gethash (code-archive--codeblock-id x) codeblocks)
             (error  "Duplicate codeblock link for id: %s"
