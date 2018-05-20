@@ -107,8 +107,9 @@
   (code-archive-init)
   (let* ((file (buffer-file-name))
          (line (and file
-                    (code-archive--current-line (and (region-active-p)
-                                                     (region-beginning)))))
+                    (line-number-at-pos (and (region-active-p)
+                                             (region-beginning))
+                                        t)))
          (region-string (and (region-active-p)
                              (buffer-substring (region-beginning)
                                                (region-end))))
@@ -281,14 +282,6 @@ Return the archive data in a code-archive--codeblock struct."
                                   :archived-git-commit commit-hash
                                   :archived-md5 checksum)
     ))
-
-(defun code-archive--current-line (&optional point)
-  "Get the current line at the current point or at POINT."
-  (save-restriction
-    (widen)
-    (save-excursion
-      (beginning-of-line)
-      (1+ (count-lines 1 (or point (point)))))))
 
 (defun code-archive--char-split-string (string)
   "Split a STRING into its charaters."
