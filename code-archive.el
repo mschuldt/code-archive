@@ -341,8 +341,9 @@ Return the archive data in a code-archive--codeblock struct."
            codeblock
            code-archive--codeblocks)
   (code-archive--run-git '("add" "*")
-                         '("commit" "-m" "added: code block link")))
-
+                         (list "commit" "-m"
+                               (format "added: code block link %s"
+                                       (code-archive--codeblock-id codeblock)))))
 
 (defun code-archive--get-block-info (id)
   "Return the source information for codeblock with given ID."
