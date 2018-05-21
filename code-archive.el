@@ -204,26 +204,12 @@ The point must be on the first line." ;;TODO: jump from anywhere in the source b
             (goto-char 1)
             (forward-line line)
             (when changed
-              (read-only-mode 1)
+              (code-archive-mode)
+              (setq code-archive--source-file source-file)
+              (setq code-archive--source-line line)
               (if file-exists
                   (message "Visiting archived version. Press 'o' to visit original changed file")
-                (message "Visiting archived version. Original file deleted."))
-
-              (local-set-key (kbd "o")
-                             (lambda ()
-                               (interactive)
-                               (if file-exists
-                                   (progn
-                                     (find-file-other-window source-file)
-                                     (goto-char 1)
-                                     (forward-line line))
-                                 (message "Original file does not exist"))
-                               ))
-              (local-set-key (kbd "q")
-                             (lambda ()
-                               (interactive)
-                               (kill-buffer)
-                               ))))
+                (message "Visiting archived version. Original file deleted."))))
         (message "Error: no link info for codeblock id: %s" id)))))
 
 (defun code-archive--next-id ()
@@ -375,6 +361,41 @@ Return the archive data in a code-archive--codeblock struct."
       (setq code-archive--codeblocks codeblocks)
       (message (format "loaded %s codeblock links" c)))
     (setq code-archive--codeblocks-loaded t)))
+
+;;; minor mode for viewing archived code
+
+(defvar-local code-archive--source-file nil
+  "The original source file path for the archived buffer file")
+
+(defvar-local code-archive--source-line nil
+  "The line number in the original source file")
+
+(defun code-archive-open-original-file ()
+  "Open the original source file associated with the archived buffer source."
+  (interactive)
+  (if (file-exists-p code-archive--source-file)
+      (let ((line code-archive--source-line))
+        (find-file-other-window code-archive--source-file)
+        (goto-char 1)
+        (forward-line line))
+    (message "Original file does not exist")))
+
+(defun code-archive-kill-buffer () ;; prevent remapping by ido
+  "Kill the current buffer."
+  (interactive)
+  (kill-buffer))
+
+(defvar code-archive-mode-map
+  (let ((map (make-sparse-keymap 'code-archive-mode-map)))
+    (define-key map (kbd "o") 'code-archive-open-original-file)
+    (define-key map (kbd "q") 'code-archive-kill-buffer)
+    map)
+  "The variable ‘code-archive-mode’ keymap.")
+
+(define-minor-mode code-archive-mode
+  "Minor mode for viewing archived files"
+  nil "-code-archive" code-archive-mode-map
+  (read-only-mode 1))
 
 (provide 'code-archive)
 
