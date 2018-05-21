@@ -28,19 +28,33 @@
 
 (require 'cl)
 
-(defvar code-archive-dir "~/code-archive"
-  "Directory in which to archive source files.")
+(defgroup code-archive nil
+  "Source code archival and reference"
+  :prefix "code-archive-"
+  :group 'applications)
 
-(defvar code-archive-src-map '((lisp-interaction-mode . "emacs-lisp")
-                               (makefile-automake-mode . "Makefile")
-                               (GNUmakefile . "Makefile")
-                               (fundamental-mode . "text")
-                               (sh-mode . "bash")
-                               (mhtml-mode . "html")
-                               ))
+(defcustom code-archive-dir "~/code-archive"
+  "Directory in which to archive source files."
+  :group 'code-archive
+  :type 'string)
 
-(defvar code-archive-git-executable "git"
-  "The Git executable used by code-archive.")
+(defcustom code-archive-src-map '((lisp-interaction-mode . "emacs-lisp")
+                                  (makefile-automake-mode . "Makefile")
+                                  (GNUmakefile . "Makefile")
+                                  (fundamental-mode . "text")
+                                  (sh-mode . "bash")
+                                  (mhtml-mode . "html")
+                                  )
+  "Alist mapping major mode name to source name."
+  :group 'code-archive
+  :type '(alist :key-type (symbol :tag "Major mode name")
+                :value-type (string :tag "source name for org block")))
+
+
+(defcustom code-archive-git-executable "git"
+  "The Git executable used by code-archive."
+  :group 'code-archive
+  :type 'string)
 
 (defvar code-archive--save-stack nil)
 
