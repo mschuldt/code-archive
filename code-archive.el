@@ -327,11 +327,11 @@ Return the archive data in a code-archive--codeblock struct."
 
 (defun code-archive--strip-end (string &optional char)
   "If CHAR occurs at the end of STRING, remove it."
-  (let ((split (code-archive--char-split-string string))
+  (let ((split (nreverse (code-archive--char-split-string string)))
         (char (or char " ")))
-    (while (string= char (car (last split)))
-      (setq split (butlast split)))
-    (mapconcat 'identity split "")))
+    (while (string= char (car split))
+      (setq split (cdr split)))
+    (mapconcat 'identity (nreverse split) "")))
 
 (defun code-archive--record-to-vector (record)
   "Convert RECORD type to a vector."
