@@ -89,8 +89,12 @@
         (erase-buffer)
         (apply 'call-process code-archive-git-executable nil t nil args)
         (setq s (buffer-string))
-        (when (> (length s) 0)
-          (message s))))))
+        (message (format "command-args: %s" command-args))
+        (when (and (not (equal (caar command-args) "show"))
+                   (> (length s) 0))
+          (message s))
+        ))
+    s))
 
 (defun code-archive-init ()
   "Initialize the code archive."
