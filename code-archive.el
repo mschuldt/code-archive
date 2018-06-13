@@ -60,7 +60,7 @@
 
 (defvar code-archive--codeblocks (make-hash-table))
 
-(defvar code-archive-initialized nil
+(defvar code-archive--initialized nil
   "Non-nil when the code archive has been initialized.")
 
 (defvar code-archive--codeblocks-loaded nil
@@ -94,7 +94,7 @@
 
 (defun code-archive-init ()
   "Initialize the code archive."
-  (unless (or code-archive-initialized
+  (unless (or code-archive--initialized
               (file-exists-p (concat (file-name-as-directory code-archive-dir)
                                      ".git")))
     (unless (file-exists-p code-archive-dir)
@@ -106,7 +106,7 @@
     (code-archive--run-git '("init")
                            '("add" "*")
                            '("commit" "-m" "initial")))
-  (setq code-archive-initialized t))
+  (setq code-archive--initialized t))
 
 (defun code-archive--source-type ()
   "Return the source type of the current buffer."
@@ -157,13 +157,13 @@ This consumes an entry from ‘code-archive--save-stack’."
   (if code-archive--save-stack
       (save-excursion
         (insert (code-archive--format-org-block)))
-    (message "org code ring is empty")))
+    (message "code archive stack is empty")))
 
 ;;;###autoload
 (defun code-archive-do-org-capture (filename)
   "For use in an org capture template, insert an org code block.
 FILENAME is the name of the file visited by buffer when org capture was called.
-Usage in capture template: (code-archive-do-org-capture \"%f\")"
+Usage in capture template: (code-archive-do-org-capture \"%F\")"
   (with-current-buffer (find-buffer-visiting filename)
     (code-archive-save-code))
   (code-archive--format-org-block))
@@ -172,7 +172,7 @@ Usage in capture template: (code-archive-do-org-capture \"%f\")"
 (defun code-archive-org-src-tag (filename)
   "For use in an org capture template, insert an org code block.
 FILENAME is the name of the file visited by buffer when org capture was called.
-Usage in capture template: (code-archive-org-src-tag \"%f\")"
+Usage in capture template: (code-archive-org-src-tag \"%F\")"
   (let (src-type)
     (with-current-buffer (find-buffer-visiting filename)
       (setq src-type (code-archive--source-type)))
@@ -339,7 +339,7 @@ Return the archive data in a code-archive--codeblock struct."
            code-archive--codeblocks)
   (code-archive--run-git '("add" "*")
                          (list "commit" "-m"
-                               (format "added: code block link %s"
+                               (format "code block link %s"
                                        (code-archive--codeblock-id codeblock)))))
 
 (defun code-archive--get-block-info (id)
