@@ -4,7 +4,7 @@
 
 ;; Author: Michael Schuldt <mbschuldt@gmail.com>
 ;; Version: 0.1
-;; Package-Requires: ((emacs "24"))
+;; Package-Requires: ((emacs "24.3"))
 ;; URL: https://github.com/mschuldt/code-archive
 
 ;; This program is free software; you can redistribute it and/or
