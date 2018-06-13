@@ -192,21 +192,32 @@ Usage in capture template: (code-archive-org-src-tag \"%F\")"
                (format ":%s:" src-type))
       "")))
 
+(defun code-archive--set-auto-mode (filename)
+  "Set auto mode for current buffer displaying FILENAME."
+  (let ((buffer-file-name filename))
+    (set-auto-mode)))
+
+(defun code-archive--get-codeblock-id ()
+  "Return the id of the codeblock at point."
+  (save-excursion
+    (end-of-line)
+    (setq bound (point))
+    (beginning-of-line)
+    (if (looking-at "[ \t]*#\\+BEGIN_SRC")
+        (if (re-search-forward "_id=\\([0-9]+\\)" bound)
+            (string-to-number (match-string 1))
+          (message "Error: could not find block id")
+          nil)
+      (message "Error: not on a source block header")
+      nil)))
+
 ;;;###autoload
 (defun code-archive-goto-src ()
   "Open the original source file of the codeblock at point.
 The point must be on the first line." ;;TODO: jump from anywhere in the source block
   (interactive)
-  (let (bound id info)
-    (save-excursion
-      (end-of-line)
-      (setq bound (point))
-      (beginning-of-line)
-      (if (looking-at "[ \t]*#\\+BEGIN_SRC")
-          (if (re-search-forward "_id=\\([0-9]+\\)" bound)
-              (setq id (string-to-number (match-string 1)))
-            (message "Error: could not find block id"))
-        (message "Error: not on a source block header")))
+  (let ((id (code-archive--get-codeblock-id))
+        bound info)
     (when id
       (setq info (code-archive--get-block-info id))
       (if info
@@ -215,23 +226,38 @@ The point must be on the first line." ;;TODO: jump from anywhere in the source b
                  (archive-md5 (code-archive--codeblock-archived-md5 info))
                  (line (1- (code-archive--codeblock-line info)))
                  (file-exists (file-exists-p file))
-                 changed)
-            (unless (and file-exists
-                         (string= (code-archive--file-md5 file)
-                                  archive-md5))
-              (setq file (concat (file-name-as-directory code-archive-dir)
-                                 (code-archive--codeblock-archived-file info))
-                    changed t))
-            (find-file-other-window file)
-            (goto-char 1)
-            (forward-line line)
-            (when changed
-              (code-archive-mode)
-              (setq code-archive--source-file source-file)
-              (setq code-archive--source-line line)
-              (if file-exists
-                  (message "Visiting archived version. Press 'o' to visit original changed file")
-                (message "Visiting archived version. Original file deleted."))))
+                 hash archive-file filename buffer-name)
+            (if (and file-exists
+                     (string= (code-archive--file-md5 file)
+                              archive-md5))
+                (progn (find-file-other-window file)
+                       (goto-char 1)
+                       (forward-line line)
+                       (message "Visiting original version"))
+              ;; else:
+              (setq filename (format "%s.%s"
+                                     (file-name-base file)
+                                     (file-name-extension file))
+                    hash (code-archive--codeblock-archived-git-commit info)
+                    buffer-name (concat filename "-" hash))
+              (when (get-buffer buffer-name)
+                (kill-buffer buffer-name))
+              (setq buf (get-buffer-create buffer-name)
+                    archive-file (code-archive--codeblock-archived-file info))
+              (with-current-buffer buf
+                (insert (code-archive--run-git
+                         (list "show" (concat hash ":" archive-file))))
+                (code-archive--set-auto-mode filename)
+                (code-archive-mode)
+                (setq code-archive--source-file source-file)
+                (setq code-archive--source-line line)
+                (goto-char 1)
+                (forward-line line)
+                (pop-to-buffer (current-buffer)))
+              (message (concat "Visiting archived version. "
+                               (if file-exists
+                                   "Press 'o' to visit original changed file"
+                                 "Original file deleted.")))))
         (message "Error: no link info for codeblock id: %s" id)))))
 
 (defun code-archive--next-id ()
