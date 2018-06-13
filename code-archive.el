@@ -168,6 +168,8 @@ This consumes an entry from ‘code-archive--save-stack’."
   "For use in an org capture template, insert an org code block.
 FILENAME is the name of the file visited by buffer when org capture was called.
 Usage in capture template: (code-archive-do-org-capture \"%F\")"
+  (when (string= filename "")
+    (error "Buffer buffer-file-name was probably unset"))
   (with-current-buffer (find-buffer-visiting filename)
     (code-archive-save-code))
   (code-archive--format-org-block))
@@ -177,6 +179,8 @@ Usage in capture template: (code-archive-do-org-capture \"%F\")"
   "For use in an org capture template, insert an org code block.
 FILENAME is the name of the file visited by buffer when org capture was called.
 Usage in capture template: (code-archive-org-src-tag \"%F\")"
+  (when (string= filename "")
+      (error "Buffer buffer-file-name was probably unset"))
   (let (src-type)
     (with-current-buffer (find-buffer-visiting filename)
       (setq src-type (code-archive--source-type)))
