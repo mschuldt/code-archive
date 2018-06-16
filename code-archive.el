@@ -201,15 +201,15 @@ Usage in capture template: (code-archive-org-src-tag \"%F\")"
   "Return the id of the codeblock at point."
   (save-excursion
     (end-of-line)
-    (setq bound (point))
-    (beginning-of-line)
-    (if (looking-at "[ \t]*#\\+BEGIN_SRC")
-        (if (re-search-forward "_id=\\([0-9]+\\)" bound)
-            (string-to-number (match-string 1))
-          (message "Error: could not find block id")
-          nil)
-      (message "Error: not on a source block header")
-      nil)))
+    (let ((bound (point)))
+      (beginning-of-line)
+      (if (looking-at "[ \t]*#\\+BEGIN_SRC")
+          (if (re-search-forward "_id=\\([0-9]+\\)" bound)
+              (string-to-number (match-string 1))
+            (message "Error: could not find block id")
+            nil)
+        (message "Error: not on a source block header")
+        nil))))
 
 ;;;###autoload
 (defun code-archive-goto-src ()
@@ -217,7 +217,7 @@ Usage in capture template: (code-archive-org-src-tag \"%F\")"
 The point must be on the first line." ;;TODO: jump from anywhere in the source block
   (interactive)
   (let ((id (code-archive--get-codeblock-id))
-        bound info)
+        info)
     (when id
       (setq info (code-archive--get-block-info id))
       (if info
