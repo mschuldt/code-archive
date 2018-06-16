@@ -1,0 +1,75 @@
+
+Archive and reference source code snippets
+
+This package provides commands for saving selecting code regions and inserting them as org-mode styled code blocks.
+These code blocks are tagged with an id that allows jumping back to the original source file.
+The original source file is archived in a git managed repo each time a code block is saved.
+
+Saving full file copies enables referencing the orignal context and avoids the problem of locating bookmarked regions
+when the file becomes massively mutated or deleted. Using git solves
+the problem of saving multiple versions of a file history in a space efficient way.
+
+Additional helpers are provided for org-capture templates.
+
+* Installation and Setup
+Install in the usual way.
+
+in your config file:
+
+Set the code archive directory, which defaults to =~/code-archive=
+#+BEGIN_SRC emacs-lisp
+  (setq code-archive-dir "~/code-archive-directory")
+#+END_SRC
+The variable =code-archive-src-map= maps major modes to org block source types.
+If the mode name does not have the format "<language>-mode" then the mode
+to language mapping must be added. An example for GNUmakefile mode:
+#+BEGIN_SRC emacs-lisp
+  (push '(GNUmakefile . Makefile) code-archive-src-map)
+#+END_SRC
+
+These variables can also be edited using custom by selecting the group "code-archive"
+
+* Usage
+** Save and insert org code block
+ 1. Select code. With a region selected in a source file run =M-x code-archive-save-code=,
+    This will save that region to an internal stack. Multiple regions can be saved consecutively in this way.
+    The source file will be added or updated in the git archive.
+
+ 2. Insert the code block. =M-x code-archive-insert-org-block= will insert the most recently saved codeblock.
+    This should be called for each corresponding call to =code-archive-save-code=,
+** Jumping to source files
+With the point at the start of a codeblock run =M-x code-archive-goto-src= to jump to the source file.
+
+This will open the original source file if it has not changed. If it has been changed or deleted since the file 
+was archived, the archived version will be opened instead.
+
+Archived files are opened with =code-archive-mode= which recognizes the following keys:
+| o | Open the original source file at the same position if it exists |
+| q | Kill the buffer.                                                |
+
+** org-capture templates
+The functions ~code-archive-do-org-capture~ and ~code-archive-org-src-tag~ are provided
+for use in org-capture templates. They allow the capture template to archive the
+file and save the region as a codeblock in some designated file.
+Both require the file name to be passed to it with the =%F= escape.
+
+~code-archive-do-org-capture~ will create a codeblock out of the selected region, saving the
+file to the git archive in the usual way. This is equivalent to calling manually calling =code-archive-save-code= in the source buffer and calling =code-archive-insert-org-block= in the capture buffer.
+
+~code-archive-org-src-tag~ will insert an org tag of the source type.
+
+An example org capture template using both these functions:
+#+BEGIN_SRC emacs-lisp
+  (setq org-capture-templates
+        (quote (("c" "Code" entry (file "~/path/to/code.org")
+                 "* %? %(code-archive-org-src-tag \"%F\")
+   :PROPERTIES:
+   :FILE:     %F
+   :END:
+   %(code-archive-do-org-capture \"%F\")")
+                )))
+#+END_SRC
+* Todo
+- modify html export to make the code blocks clickable, have it open the original or archived source file.
+- possibly enable multiple code archives. Currently not possible
+  because the code block ID is global.
