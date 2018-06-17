@@ -39,8 +39,8 @@
   :type 'string)
 
 (defcustom code-archive-src-map '((lisp-interaction-mode . "emacs-lisp")
-                                  (makefile-automake-mode . "Makefile")
-                                  (GNUmakefile . "Makefile")
+                                  (makefile-automake-mode . "makefile")
+                                  (GNUmakefile . "makefile")
                                   (fundamental-mode . "text")
                                   (sh-mode . "bash")
                                   (mhtml-mode . "html")
