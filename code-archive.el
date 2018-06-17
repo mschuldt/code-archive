@@ -312,8 +312,7 @@ Return the archive data in a code-archive--codeblock struct."
                                                          commit path))))
 
     (setq commit-hash (code-archive--strip-end
-                       (shell-command-to-string
-                        (format "cd %s && git rev-parse HEAD" code-archive-dir))
+                       (code-archive--run-git '("rev-parse" "HEAD"))
                        "\n"))
     (make-code-archive--codeblock :file path
                                   :archived-file filename
