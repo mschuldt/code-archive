@@ -41,15 +41,15 @@
 (defcustom code-archive-src-map '((lisp-interaction-mode . "emacs-lisp")
                                   (makefile-automake-mode . "makefile")
                                   (GNUmakefile . "makefile")
+                                  (makefile-gmake-mode . "makefile")
                                   (fundamental-mode . "text")
-                                  (sh-mode . "bash")
                                   (mhtml-mode . "html")
                                   )
-  "Alist mapping major mode name to source name."
+  "Alist mapping major mode name to source name.
+The source name is the alternative mode to use without the -mode suffix"
   :group 'code-archive
   :type '(alist :key-type (symbol :tag "Major mode name")
                 :value-type (string :tag "source name for org block")))
-
 
 (defcustom code-archive-git-executable "git"
   "The Git executable used by code-archive."

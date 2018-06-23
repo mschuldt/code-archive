@@ -20,12 +20,11 @@ Set the code archive directory, which defaults to =~/code-archive=
 #+BEGIN_SRC emacs-lisp
   (setq code-archive-dir "~/code-archive-directory")
 #+END_SRC
-The variable =code-archive-src-map= maps major modes to org block source types.
-If the mode name does not have the format "<language>-mode" then the mode
-to language mapping must be added. An example for GNUmakefile mode:
+The variable =code-archive-src-map= maps major modes to the mode that is used for the org block source type. For example:
 #+BEGIN_SRC emacs-lisp
-  (push '(GNUmakefile . Makefile) code-archive-src-map)
+  (push '(lisp-interaction-mode . "emacs-lisp") code-archive-src-map)
 #+END_SRC
+Set code-archive-src-map to nil to disable it.
 
 These variables can also be edited using custom by selecting the group "code-archive"
 
