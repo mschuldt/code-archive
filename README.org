@@ -39,7 +39,7 @@ These variables can also be edited using custom by selecting the group "code-arc
 ** Jumping to source files
 With the point at the start of a codeblock run =M-x code-archive-goto-src= to jump to the source file.
 
-This will open the original source file if it has not changed. If it has been changed or deleted since the file 
+This will open the original source file if it has not changed. If it has been changed or deleted since the file
 was archived, the archived version will be opened instead.
 
 Archived files are opened with =code-archive-mode= which recognizes the following keys:
@@ -72,3 +72,5 @@ An example org capture template using both these functions:
 - modify html export to make the code blocks clickable, have it open the original or archived source file.
 - possibly enable multiple code archives. Currently not possible
   because the code block ID is global.
+- Use the derived-mode-parent property to find the mode to use
+as the source block type. This will eliminate the need for code-archive-src-map
