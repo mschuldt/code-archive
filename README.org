@@ -12,7 +12,8 @@ the problem of saving multiple versions of a file history in a space efficient w
 Additional helpers are provided for org-capture templates.
 
 * Installation and Setup
-Install in the usual way.
+=code-archive= is available from the MELPA package archive.
+See https://melpa.org/#/getting-started for help getting it setup.
 
 in your config file:
 
