@@ -107,7 +107,7 @@ The source name is the alternative mode to use without the -mode suffix"
         (message (format "command-args: %s" command-args))
         (when (and (not (equal (caar command-args) "show"))
                    (> (length s) 0))
-          (message s))
+          (message "%s" s))
         ))
     s))
 
