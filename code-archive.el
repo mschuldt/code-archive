@@ -81,6 +81,9 @@ The source name is the alternative mode to use without the -mode suffix"
 (defvar code-archive--codeblocks-loaded nil
   "Non-nil when codeblocks are loaded.")
 
+(defvar code-archive--last-id nil
+  "Value of the last codeblock ID.")
+
 (defstruct code-archive--entry
   codeblock src-type string)
 
@@ -90,10 +93,6 @@ The source name is the alternative mode to use without the -mode suffix"
 (defun code-archive--link-file ()
   "Return the archive link-file."
   (concat (file-name-as-directory code-archive-dir) "_code-links.el"))
-
-(defun code-archive--id-file ()
-  "Return the archive id-file."
-  (concat (file-name-as-directory code-archive-dir) "_next-id.el"))
 
 (defun code-archive--run-git (&rest command-args)
   "Execute Git with COMMAND-ARGS, display any output."
@@ -119,9 +118,7 @@ The source name is the alternative mode to use without the -mode suffix"
     (unless (file-exists-p code-archive-dir)
       (mkdir code-archive-dir))
     (with-temp-buffer
-      (write-file (code-archive--link-file))
-      (insert "0")
-      (write-file (code-archive--id-file)))
+      (write-file (code-archive--link-file)))
     (code-archive--run-git '("init")
                            '("add" "*")
                            '("commit" "-m" "initial")))
@@ -157,6 +154,7 @@ The source name is the alternative mode to use without the -mode suffix"
 (defun code-archive--format-org-block ()
   "Format an `org-mode' styled code block sourced from the code archive stack.
 This consumes an entry from ‘code-archive--save-stack’."
+  (code-archive--load-codeblocks)
   (let* ((entry (pop code-archive--save-stack))
          (codeblock (code-archive--entry-codeblock entry))
          (src-type (code-archive--entry-src-type entry))
@@ -277,13 +275,8 @@ The point must be on the first line." ;;TODO: jump from anywhere in the source b
 
 (defun code-archive--next-id ()
   "Return the next source block id."
-  (assert (not (zerop (or (nth 7 (file-attributes (code-archive--id-file))) 0))))
-  (let ((n (with-temp-buffer
-             (insert-file-contents (code-archive--id-file))
-             (read (current-buffer)))))
-    (with-temp-file (code-archive--id-file)
-      (insert (number-to-string (1+ n))))
-    n))
+  (assert (not (null code-archive--last-id)))
+  (setq code-archive--last-id (1+ code-archive--last-id)))
 
 (defun code-archive--file-md5 (filename)
   "Calculate the md5 digest of the file FILENAME."
@@ -400,6 +393,8 @@ Return the archive data in a code-archive--codeblock struct."
   (unless code-archive--codeblocks-loaded
     (let ((c 0)
           (codeblocks (make-hash-table))
+          (block-id 0)
+          (max-id 0)
           blocks)
       (with-temp-buffer
         (condition-case err
@@ -418,9 +413,12 @@ Return the archive data in a code-archive--codeblock struct."
         (if (gethash (code-archive--codeblock-id x) codeblocks)
             (error  "Duplicate codeblock link for id: %s"
                     (code-archive--codeblock-id x))
-          (puthash (code-archive--codeblock-id x) x codeblocks)
+          (setq block-id (code-archive--codeblock-id x)
+                max-id (max block-id max-id))
+          (puthash block-id x codeblocks)
           (setq c (1+ c))))
-      (setq code-archive--codeblocks codeblocks)
+      (setq code-archive--codeblocks codeblocks
+            code-archive--last-id max-id)
       (message (format "loaded %s codeblock links" c)))
     (setq code-archive--codeblocks-loaded t)))
 
