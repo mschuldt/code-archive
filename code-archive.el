@@ -3,7 +3,7 @@
 ;; Copyright (C) 2018 Michael Schuldt
 
 ;; Author: Michael Schuldt <mbschuldt@gmail.com>
-;; Version: 0.2
+;; Version: 0.3
 ;; Package-Requires: ((emacs "24.3"))
 ;; URL: https://github.com/mschuldt/code-archive
 
@@ -140,9 +140,10 @@ The source name is the alternative mode to use without the -mode suffix"
                     (line-number-at-pos (and (region-active-p)
                                              (region-beginning))
                                         t)))
-         (region-string (and (region-active-p)
+         (region-string (if (region-active-p)
                              (buffer-substring (region-beginning)
-                                               (region-end))))
+                                               (region-end))
+                          ""))
          (codeblock (code-archive--save-buffer-file)))
     (setf (code-archive--codeblock-file codeblock) file)
     (setf (code-archive--codeblock-line codeblock) line)
@@ -158,13 +159,14 @@ This consumes an entry from ‘code-archive--save-stack’."
   (let* ((entry (pop code-archive--save-stack))
          (codeblock (code-archive--entry-codeblock entry))
          (src-type (code-archive--entry-src-type entry))
-         (string (code-archive--entry-string entry))
+         (lines (split-string (code-archive--entry-string entry) "\n"))
+         (code (mapconcat (lambda (line) (concat "  " line)) lines "\n"))
          (id (code-archive--next-id)))
     (setf (code-archive--codeblock-id codeblock) id)
     (code-archive--add-codeblock codeblock)
     (format  "\n#+BEGIN_SRC %s :var _id=%s
 %s\n#+END_SRC
-" src-type id string)))
+" src-type id code)))
 
 ;;;###autoload
 (defun code-archive-insert-org-block ()
