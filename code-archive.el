@@ -119,7 +119,7 @@ The source name is the alternative mode to use without the -mode suffix"
               (file-exists-p (concat (file-name-as-directory code-archive-dir)
                                      ".git")))
     (unless (file-exists-p code-archive-dir)
-      (mkdir code-archive-dir))
+      (mkdir code-archive-dir :parents))
     (with-temp-buffer
       (write-file (code-archive--link-file)))
     (code-archive--run-git '("init")
@@ -329,7 +329,7 @@ Return the archive data in a code-archive--codeblock struct."
     ))
 
 (defun code-archive--char-split-string (string)
-  "Split a STRING into its charaters."
+  "Split a STRING into its characters."
   (cdr (butlast (split-string string ""))))
 
 (defun code-archive--strip-end (string &optional char)
