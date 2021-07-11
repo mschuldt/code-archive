@@ -42,6 +42,7 @@
 ;;; Code:
 
 (require 'cl)
+(require 'org)
 
 (defgroup code-archive nil
   "Source code archival and reference"
@@ -49,9 +50,14 @@
   :group 'applications)
 
 (defcustom code-archive-dir "~/code-archive"
-  "Directory in which to archive source files."
+  "Active directory in which to archive source files."
   :group 'code-archive
   :type 'string)
+
+(defcustom code-archive-additional-archives '()
+  "Additional code archives directories used for reference. New code is saved in `code-archive-dir'"
+  :group 'code-archive
+  :type 'list)
 
 (defcustom code-archive-src-map '((lisp-interaction-mode . "emacs-lisp")
                                   (makefile-automake-mode . "makefile")
@@ -73,7 +79,7 @@ The source name is the alternative mode to use without the -mode suffix"
 
 (defvar code-archive--save-stack nil)
 
-(defvar code-archive--codeblocks (make-hash-table))
+(defvar code-archive--codeblocks (make-hash-table :test 'equal))
 
 (defvar code-archive--initialized nil
   "Non-nil when the code archive has been initialized.")
@@ -81,18 +87,15 @@ The source name is the alternative mode to use without the -mode suffix"
 (defvar code-archive--codeblocks-loaded nil
   "Non-nil when codeblocks are loaded.")
 
-(defvar code-archive--last-id nil
-  "Value of the last codeblock ID.")
-
 (defstruct code-archive--entry
   codeblock src-type string)
 
 (defstruct code-archive--codeblock
   id file archived-file line archived-git-commit archived-md5)
 
-(defun code-archive--link-file ()
+(defun code-archive--link-file (archive-dir)
   "Return the archive link-file."
-  (concat (file-name-as-directory code-archive-dir) "_code-links.el"))
+  (concat (file-name-as-directory archive-dir) "_code-links.el"))
 
 (defun code-archive--run-git (&rest command-args)
   "Execute Git with COMMAND-ARGS, display any output."
@@ -161,7 +164,7 @@ This consumes an entry from ‘code-archive--save-stack’."
          (src-type (code-archive--entry-src-type entry))
          (lines (split-string (code-archive--entry-string entry) "\n"))
          (code (mapconcat (lambda (line) (concat "  " line)) lines "\n"))
-         (id (code-archive--next-id)))
+         (id (org-id-uuid)))
     (setf (code-archive--codeblock-id codeblock) id)
     (code-archive--add-codeblock codeblock)
     (format  "\n#+BEGIN_SRC %s :var _id=%s
@@ -219,8 +222,8 @@ Usage in capture template: (code-archive-org-src-tag \"%F\")"
     (let ((bound (point)))
       (beginning-of-line)
       (if (looking-at "[ \t]*#\\+BEGIN_SRC")
-          (if (re-search-forward "_id=\\([0-9]+\\)" bound)
-              (string-to-number (match-string 1))
+          (if (re-search-forward "_id=\\([0-9a-z-]+\\)" bound)
+              (match-string 1)
             (message "Error: could not find block id")
             nil)
         (message "Error: not on a source block header")
@@ -274,11 +277,6 @@ The point must be on the first line." ;;TODO: jump from anywhere in the source b
                                    "Press 'o' to visit original changed file"
                                  "Original file deleted.")))))
         (message "Error: no link info for codeblock id: %s" id)))))
-
-(defun code-archive--next-id ()
-  "Return the next source block id."
-  (assert (not (null code-archive--last-id)))
-  (setq code-archive--last-id (1+ code-archive--last-id)))
 
 (defun code-archive--file-md5 (filename)
   "Calculate the md5 digest of the file FILENAME."
@@ -388,41 +386,50 @@ Return the archive data in a code-archive--codeblock struct."
 (defun code-archive--get-block-info (id)
   "Return the source information for codeblock with given ID."
   (code-archive--load-codeblocks)
-  (gethash id code-archive--codeblocks))
+  (or (gethash id code-archive--codeblocks)
+      ;; support old style integer ids
+      (gethash (string-to-number id) code-archive--codeblocks)))
+
+(defun code-archive--load-archive (archive)
+  "Load code archive codeblocks from FILENAME."
+  (let ((c 0)
+        (filename (code-archive--link-file archive))
+        (codeblocks (make-hash-table :test 'equal))
+        (block-id 0)
+        (max-id 0)
+        blocks)
+    (with-temp-buffer
+      (condition-case err
+          (progn
+            (insert-file-contents-literally filename)
+            (goto-char (point-max))
+            (insert ")")
+            (goto-char 1)
+            (insert "(")
+            (goto-char 1)
+            (setq blocks (mapcar 'code-archive--array-to-codeblock
+                                 (read (current-buffer)))))
+        (error (message "Error reading kb codeblock file '%s': %s"
+                        (code-archive--link-file) err))))
+    (dolist (x blocks)
+      (setq block-id (code-archive--codeblock-id x))
+      (if (gethash block-id codeblocks)
+          (error  "Duplicate codeblock link for id: %s" block-id)
+        (puthash block-id x codeblocks)
+        (puthash block-id x code-archive--codeblocks)
+        (setq c (1+ c))))
+    c))
 
 (defun code-archive--load-codeblocks ()
-  "Load code archive codeblocks links."
+  "Load code archive codeblock links from all archives."
   (unless code-archive--codeblocks-loaded
-    (let ((c 0)
-          (codeblocks (make-hash-table))
-          (block-id 0)
-          (max-id 0)
-          blocks)
-      (with-temp-buffer
-        (condition-case err
-            (progn
-              (insert-file-contents-literally (code-archive--link-file))
-              (goto-char (point-max))
-              (insert ")")
-              (goto-char 1)
-              (insert "(")
-              (goto-char 1)
-              (setq blocks (mapcar 'code-archive--array-to-codeblock
-                                   (read (current-buffer)))))
-          (error (message "Error reading kb codeblock file '%s': %s"
-                          (code-archive--link-file) err))))
-      (dolist (x blocks)
-        (if (gethash (code-archive--codeblock-id x) codeblocks)
-            (error  "Duplicate codeblock link for id: %s"
-                    (code-archive--codeblock-id x))
-          (setq block-id (code-archive--codeblock-id x)
-                max-id (max block-id max-id))
-          (puthash block-id x codeblocks)
-          (setq c (1+ c))))
-      (setq code-archive--codeblocks codeblocks
-            code-archive--last-id max-id)
-      (message (format "loaded %s codeblock links" c)))
-    (setq code-archive--codeblocks-loaded t)))
+    (let ((archives code-archive-additional-archives)
+          (c 0))
+      (add-to-list 'archives code-archive-dir)
+      (dolist (dir archives)
+        (setq c (+ c (code-archive--load-archive dir))))
+      (message (format "loaded %s codeblock links" c))
+      (setq code-archive--codeblocks-loaded t))))
 
 ;;; minor mode for viewing archived code
 
